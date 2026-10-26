@@ -314,7 +314,7 @@
       #aim-gate label { display: grid; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
       #aim-gate input { font: inherit; font-size: 17px; text-transform: none; letter-spacing: 0; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px; }
       #aim-gate .go { border: 0; border-radius: 999px; background: var(--fg); color: var(--bg); padding: 15px; font: 700 17px var(--font-body); margin-top: 8px; }
-      #aim-gate .alt { border: 0; background: none; color: var(--fg); font: 600 15px var(--font-body); }
+      #aim-gate .note { font-size: 14px; text-align: center; margin: 4px 0 0; }
       #aim-gate .msg { color: var(--muted); font-size: 14px; min-height: 1em; }
     </style>
     <form autocomplete="on"><h1>AIM</h1><p class="sub">Sign in to your training</p>
@@ -322,24 +322,14 @@
       <label>Password<input name="password" type="password" autocomplete="current-password" required minlength="1"></label>
       <div class="msg" role="status"></div>
       <button class="go" type="submit">Sign in</button>
-      <button class="alt" type="button">New here? Create an account</button></form>`;
+      <p class="note">AIM is invite-only: your coach gives you an account.</p></form>`;
     document.body.appendChild(el);
-    const f = el.querySelector("form"), msg = el.querySelector(".msg"), go = el.querySelector(".go"), alt = el.querySelector(".alt"), sub = el.querySelector(".sub");
-    let creating = false;
-    alt.onclick = () => {
-      creating = !creating; msg.textContent = "";
-      go.textContent = creating ? "Create account" : "Sign in";
-      alt.textContent = creating ? "I already have an account" : "New here? Create an account";
-      sub.textContent = creating ? "Create your account" : "Sign in to your training";
-      f.password.autocomplete = creating ? "new-password" : "current-password"; f.password.minLength = creating ? 8 : 1;
-    };
-    f.onsubmit = async (e) => {
+    const f = el.querySelector("form"), msg = el.querySelector(".msg"), go = el.querySelector(".go");
+    f.onsubmit = async (e) => { // accounts are made by the coach (sign-up is off on the server), so this only signs in
       e.preventDefault(); go.disabled = true; msg.textContent = "";
-      const email = f.email.value.trim().toLowerCase(), password = f.password.value;
-      const { data, error } = creating ? await sb.auth.signUp({ email, password }) : await sb.auth.signInWithPassword({ email, password });
+      const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim().toLowerCase(), password: f.password.value });
       go.disabled = false;
-      if (error) { msg.textContent = error.message; return; }
-      if (creating && !data.session) { msg.textContent = "Check your email and tap the confirmation link, then sign in here."; alt.onclick(); }
+      if (error) msg.textContent = error.message;
     };
     return el;
   }
@@ -903,7 +893,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .preview-bar { position: relative; z-index: 30; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 12px; padding-top: max(6px, env(safe-area-inset-top)); background: var(--fg); color: var(--bg); font-size: 13px; font-weight: 600; }
 .preview-bar button { border: 1px solid currentColor; background: none; color: inherit; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
 .side-you { margin-top: 18px; }
-/* Progress (web/progress.css, put in by web/build.py): ink on paper, green only for done */
+/* Progress: ink on paper, green only for done */
 .rv .page-title { margin-bottom: 4px; }
 .rv-head { font-size: 30px; font-weight: 800; letter-spacing: -.01em; margin: 4px 0 0; }
 .rv-goal { margin: 2px 0 0; font-size: 15px; }
@@ -1153,7 +1143,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
   const dayPath = (pid, did) => progPath(pid) + "/days/" + did;
 
   /* ---------- people: roles, your athlete profile, and what your coach sees ----------
-     Roles come from the sharing level claude.ai gives each viewer; nothing about a role is stored.
+     Roles come from the server's roles table (coach) and signing in (athlete); aim-cloud.js reports them as the old access levels.
        coach   = admin (Owner or Editor): edits programs, sees the private library and the team
        athlete = saves their own progress (Contributor and up)
        viewer  = reads only
@@ -1182,7 +1172,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
       v: 1,
       level: pick(d.level, LEVELS), division: pick(d.division, DIVISIONS), equipment: pick(d.equipment, EQUIP),
       days: num(d.days, 1, 7),
-      name: String(d.name || "").trim().slice(0, 60), // the name you go by in AIM; wins over the claude.ai account's name
+      name: String(d.name || "").trim().slice(0, 60), // the name you go by in AIM; wins over the account's name
       partner: String(d.partner || "").slice(0, 80),
       goal: String(d.goal || "").slice(0, 200),
       notes: String(d.notes || "").slice(0, 600),
@@ -1265,7 +1255,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     S.memberDoc = doc;
     queueWrite(PATH.member(S.me), () => doc, 0);
   }
-  async function joinTeam() { // first visit: tell your coaches you're here; claude.ai refuses this at view-only access, which is how AIM learns it can't save for you
+  async function joinTeam() { // first visit: tell your coaches you're here; a refusal here is how AIM learns it can't save for you
     if (S.joinSent || !S.me || !S.db) return;
     S.joinSent = true;
     const doc = { v: 1, joined: Date.now(), seen: Date.now(), pending: true };
@@ -1293,7 +1283,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     return a.pid && !isNaN(dnum(a.date)) ? a : null;
   }
 
-  // names and pictures come from claude.ai when a page draws them; only ids are ever stored
+  // names and pictures come from the account when a page draws them; only ids are ever stored
   function ensureMe() {
     if (S.meAsked || !S.user || typeof S.user.me !== "function") return;
     S.meAsked = true;
@@ -1720,7 +1710,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 
   function statusScreen() {
     if (S.status === "loading") return `<div class="empty"><div class="skeleton" style="width:40%;margin:0 auto 12px"></div><p>Loading your programs…</p></div>`;
-    if (S.status === "nodb") return `<div class="empty"><h2>Your programs live in claude.ai</h2><p>Open this page from claude.ai while signed in. Programs, weeks and sessions are stored there, so the same plan shows up on your phone and your Mac.</p></div>`;
+    if (S.status === "nodb") return `<div class="empty"><h2>AIM can't reach its server</h2><p>Check your connection and reload. Programs, weeks and sessions are stored there, so the same plan shows up on your phone and your Mac.</p></div>`;
     if (S.status === "error") return `<div class="empty"><h2>Programs didn't load</h2><p>Reload the page to try again.</p></div>`;
     return "";
   }
@@ -1790,7 +1780,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     return `<nav class="dock" aria-label="Actions"><button class="dock-round" data-act="home" aria-label="Home">${I.home}</button><span class="spacer"></span>${btn || ""}</nav>`;
   }
 
-  /* ----- progress: one plan week by week against what you did (web/progress.js, put in by web/build.py) -----
+  /* ----- progress: one plan week by week against what you did (the iPhone's Progress tab, AIM/Logic/Report.swift, on the web) -----
      The same counting as the iPhone's Progress tab (AIM/Logic/Report.swift): from ticks and workouts, no AI, no guesses. */
   const RV = { all: false, days: new Map() };
   window.aimProgressRange = (all) => { RV.all = !!all; render(); };
@@ -2470,7 +2460,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     const name = pr.name || me.name || "You", pic = pr.name && pr.name !== me.name ? "" : me.avatarUrl;
     let h = `<div class="you-head">${avatar(pic, name, 64)}<div><h1 class="page-title">${esc(name)}</h1>
       <div class="row you-chips"><span class="pill role">${ROLE[r]}</span>${S.isOwner ? `<span class="pill example">Owner</span>` : ""}${S.preview ? `<span class="pill draft">Previewing as a member</span>` : ""}</div></div></div>`;
-    if (!S.me) return shell("you", h + `<div class="empty"><h2>Sign in to keep your progress</h2><p>Open AIM from claude.ai while signed in, and your ticks, dates and profile follow you to every device.</p></div>`);
+    if (!S.me) return shell("you", h + `<div class="empty"><h2>Sign in to keep your progress</h2><p>Sign in to AIM, and your ticks, dates and profile follow you to every device.</p></div>`);
     if (r === "viewer") h += `<p class="note">You can look around, but this access level can't save ticks or a profile. Ask your coach for member access.</p>`;
     // training
     const plans = datedPlans().map((x) => ({ p: x.p, s: planSummary(x.p) })).filter((x) => x.s);
@@ -2495,7 +2485,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
       <p class="hint">${esc(srcLine)} Session summaries use these.</p></section>`;
     h += `<section class="you-sec"><h2>Units</h2>${seg("units", pr.units, [["", "Same as Strava"], ["mi", "Miles"], ["km", "Kilometres"]], "Units")}</section>`;
     h += `<section class="you-sec"><h2>Connections</h2><div class="conn"><b>Strava</b>${stravaLine()}</div>
-      <div class="conn"><b>Apple Watch</b><p class="hint">Through Strava: let the Strava app read Apple Health, and watch workouts show up here.</p></div></section>`;
+      <div class="conn"><b>Apple Watch</b><p class="hint">Through the AIM iPhone app: connect Apple Health there, and watch workouts show up here too.</p></div></section>`;
     if (r !== "viewer") h += `<section class="you-sec"><h2>Privacy</h2>${shareLine(pr)}</section>`;
     h += `<section class="you-sec"><h2>Your data</h2><button class="btn" data-act="export-data">${I.download}Download my data</button> <button class="btn" onclick="window.aimSignOut()">Sign out</button>
       <p class="hint">A JSON file with your profile, ticks and calendar dates, for your records or a move to the AIM app. AIM ${AIM_VERSION}.</p></section>`;
@@ -2534,7 +2524,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     let body;
     if (!S.membersLoaded) body = `<div class="skeleton" style="margin-top:12px"></div><div class="skeleton" style="width:70%"></div>`;
     else if (S.membersErr) body = `<div class="empty"><h2>The team didn't load</h2><p>Reload the page to try again.</p></div>`;
-    else if (!S.members.size) body = `<div class="empty"><h2>No members yet</h2><p>Share AIM from claude.ai's Share menu at Contributor level. When someone opens it and finishes the welcome screen, they show up here with their plan and weekly progress.</p><button class="btn" data-act="nav" data-v="welcome">See the welcome screen</button></div>`;
+    else if (!S.members.size) body = `<div class="empty"><h2>No members yet</h2><p>AIM is invite-only: a member gets an account from you, then signs in here or in the iPhone app. Once they finish the welcome screen, they show up here with their plan and weekly progress.</p><button class="btn" data-act="nav" data-v="welcome">See the welcome screen</button></div>`;
     else body = `<div class="team">${teamRows()}</div>`;
     return shell("team", `<h1 class="page-title">Team</h1><p class="hint team-sub">${S.members.size ? plural(S.members.size, "member", "members") + " · sorted by last here" : ""}</p>${body}`);
   }
@@ -3308,5 +3298,6 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
   init();
 })();
 </script>
+
 
 </html>
