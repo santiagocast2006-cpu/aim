@@ -2691,7 +2691,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
         <button data-act="sf-anchor" data-v="start" aria-pressed="${f.anchor === "start"}">Start date</button>
       </div>
       <input id="sf-date" class="field" type="date" value="${esc(f.date)}" aria-label="${f.anchor === "race" ? "Race date" : "Start date"}" style="width:auto">
-      <button class="btn primary sm" data-act="sched-set" data-pid="${p.id}">${s ? "Update dates" : "Set dates"}</button>
+      <button class="btn primary sm" data-act="sched-set" data-pid="${p.id}">${s ? "Update dates" : "Start program"}</button>
       <button class="btn ghost sm" data-act="sched-cancel">Cancel</button>
       ${s ? `<button class="btn ghost sm danger" data-act="ask" data-key="sr:${p.id}">Reset or remove</button>` : ""}
       <p class="hint" style="width:100%;margin:0">${f.anchor === "race" ? (raceDayId(p) ? "The program's race session lands on your race day. " : "The last session lands the day before your race. ") + "Repeating a week moves the earlier weeks back, so race week stays put." : "Week 1 starts on this date; start on a Monday so sessions keep their weekdays. Repeating a week moves the later weeks forward."}${s ? " Changing the date slides your whole calendar and keeps your repeats and moves." : ""}</p>
@@ -2710,7 +2710,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     const warn = info && info.after ? `<div class="warn">${plural(info.after, "session lands", "sessions land")} on or after race day. Skip them, or push earlier sessions back.</div>` : "";
     const n = tickCount(p.id), lk = "lv:" + p.id, cpk = "cp:" + p.id;
     const button = (open ? "" : multi ? `<button class="btn sm ghost" data-act="ask" data-key="${ck}">Reset or remove</button>`
-      : `<button class="btn sm ${s ? "ghost" : ""}" data-act="${s ? "sched-edit" : "sched-open"}" data-pid="${p.id}">${s ? "Change dates" : I.flag + "Add race day"}</button>`)
+      : `<button class="btn sm ${s ? "ghost" : "primary"}" data-act="${s ? "sched-edit" : "sched-open"}" data-pid="${p.id}">${s ? "Change dates" : "Start program"}</button>`)
       + (s ? `<button class="btn sm ghost danger" data-act="ask" data-key="${lk}">Leave program</button>` // unsubscribe, as on Circle
         : n ? `<button class="btn sm ghost" data-act="ask" data-key="${cpk}">Clear my progress</button>` : ""); // done before: start it again from nothing
     const leave = S.confirm === lk ? `<div class="confirm"><span>Leave <b>${esc(shortName(p))}</b>? It comes off your Calendar.${n ? " Clearing your ticks starts it fresh next time, and can't be undone." : ""}</span><span class="spacer"></span>`
@@ -2718,10 +2718,11 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
         : `<button class="btn sm danger" data-act="prog-leave" data-pid="${p.id}" data-clear="0">Leave program</button>`)
       + `<button class="btn sm ghost" data-act="ask" data-key="">Cancel</button></div>`
       : S.confirm === cpk ? `<div class="confirm"><span>Clear all ${plural(n, "tick", "ticks")} for <b>${esc(shortName(p))}</b>? Every session goes back to not done. This can't be undone.</span><span class="spacer"></span><button class="btn sm danger" data-act="prog-clear" data-pid="${p.id}">Clear my progress</button><button class="btn sm ghost" data-act="ask" data-key="">Cancel</button></div>` : "";
-    return `<div class="dates-line">${multi ? races : s ? `<span class="tnum">${I.flag}${esc(text)}</span>` : ""}${button}</div>
+    const state = s ? `<span class="pill now-pill">On your Calendar</span>` : open ? "" : `<span class="muted" style="font-weight:400">Not on your Calendar yet.</span>`; // enrolled or not, as on Circle
+    return `<div class="dates-line">${state}${multi ? races : s ? `<span class="tnum">${I.flag}${esc(text)}</span>` : ""}${button}</div>
       ${multi && confirm ? `<div style="margin-top:10px">${confirm}</div>` : ""}
       ${leave ? `<div style="margin-top:10px">${leave}</div>` : ""}
-      ${open ? `<section class="card sched-card">${s ? "" : `<p class="muted" style="margin:0">Pick your race day or the day you start. The sessions go on your Calendar. Without dates, the program stays as it is.</p>`}${schedForm(p, s)}
+      ${open ? `<section class="card sched-card">${s ? "" : `<p class="muted" style="margin:0">Start <b>${esc(shortName(p))}</b>: pick the day you start, or your race day and AIM plans back from it. Its sessions land on your Calendar, day by day.</p>`}${schedForm(p, s)}
         ${confirm}</section>` : ""}
       ${warn}`;
   }
@@ -3063,7 +3064,11 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     },
     "sched-edit": (el) => { const s = S.schedules.get(el.dataset.pid); if (!s) return; S.sf = { anchor: s.anchor, date: s.date }; S.schedForm = el.dataset.pid; S.confirm = ""; render(); },
     "sched-cancel": () => { S.schedForm = ""; render(); },
-    "sched-open": (el) => { S.sf = { anchor: "race", date: "" }; S.schedForm = el.dataset.pid; render(); },
+    "sched-open": (el) => { // a new start: next Monday, or race day for a program that builds to one
+      const p = S.programs.get(el.dataset.pid), t = todayNum(), race = !!(p && raceDayId(p));
+      S.sf = { anchor: race ? "race" : "start", date: diso(race ? t + 7 * p.weeks.length : t + (7 - dow(t)) % 7) };
+      S.schedForm = el.dataset.pid; render();
+    },
     "sched-set": (el) => {
       const pid = el.dataset.pid; const p = S.programs.get(pid); if (!p || !S.me) return;
       const inp = document.getElementById("sf-date"); const v = inp ? inp.value : "";
