@@ -903,6 +903,77 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .preview-bar { position: relative; z-index: 30; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 12px; padding-top: max(6px, env(safe-area-inset-top)); background: var(--fg); color: var(--bg); font-size: 13px; font-weight: 600; }
 .preview-bar button { border: 1px solid currentColor; background: none; color: inherit; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
 .side-you { margin-top: 18px; }
+/* Progress (web/progress.css, put in by web/build.py): ink on paper, green only for done */
+.rv .page-title { margin-bottom: 4px; }
+.rv-head { font-size: 30px; font-weight: 800; letter-spacing: -.01em; margin: 4px 0 0; }
+.rv-goal { margin: 2px 0 0; font-size: 15px; }
+.rv-goal + .rv-two { margin-top: 16px; }
+.rv-sec { margin-top: 26px; display: grid; gap: 10px; }
+.rv-card { padding: 14px; display: grid; gap: 12px; }
+.rv-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.rv-stat { padding: 14px; display: grid; gap: 2px; justify-items: start; }
+.rv-stat b { font-size: 20px; font-weight: 800; margin-top: 8px; }
+.rv-stat small { color: var(--muted); font-size: 13px; }
+.rv-ring { position: relative; width: 42px; height: 42px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.rv-ring svg:first-child { position: absolute; inset: 0; width: 42px; height: 42px; transform: rotate(-90deg); }
+.rv-ring > svg:last-child { width: 16px; height: 16px; }
+.rv-ring circle { fill: none; stroke-width: 5; }
+.rv-ring .bg { stroke: var(--surface-2); }
+.rv-ring .fg { stroke: var(--fg); stroke-linecap: round; }
+.rv-ring .fg.full { stroke: var(--good); }
+.rv-open { display: flex; align-items: center; justify-content: space-between; padding: 14px; color: var(--fg); font-size: 15px; width: 100%; text-align: left; }
+.rv-open svg { width: 16px; height: 16px; color: var(--muted); }
+.rv-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.rv-bar i { display: block; height: 100%; border-radius: 999px; background: var(--fg); }
+.rv-bar i.full { background: var(--good); }
+.rv-metric { display: grid; gap: 8px; padding: 2px 0 14px; border-bottom: 1px solid var(--line); }
+.rv-metric:last-child { border-bottom: 0; padding-bottom: 0; }
+.rv-metric .hint { margin: 0; }
+.rv-mh { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rv-mh > span { display: grid; gap: 2px; }
+.rv .big { font-size: 20px; font-weight: 800; }
+.rv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 8px 6px; }
+.rv-wk { display: grid; justify-items: center; gap: 4px; padding: 5px 0; border: 0; background: none; border-radius: 8px; color: var(--muted); font-weight: 600; }
+.rv-wk.on { background: var(--surface-2); color: var(--fg); }
+.rv-dot { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; box-sizing: border-box; flex: none; }
+.rv-dot svg { width: 13px; height: 13px; stroke-width: 3; }
+.rv-dot.full { background: var(--good); color: var(--surface); }
+.rv-dot.partial { border: 1.5px solid var(--fg); color: var(--fg); }
+.rv-dot.missed { border: 1.5px solid var(--line); }
+.rv-dot.current { border: 2px solid var(--fg); }
+.rv-dot.current i { width: 7px; height: 7px; border-radius: 50%; background: var(--fg); }
+.rv-dot.upcoming { background: var(--surface-2); }
+.rv-legend { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.rv-legend .rv-dot { width: 13px; height: 13px; margin-right: -6px; }
+.rv-legend .rv-dot svg { width: 8px; height: 8px; }
+.rv-legend .sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: var(--fg); margin-right: -6px; }
+.rv-legend .sw.plan { background: var(--muted); height: 2px; }
+.rv-kinds { grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; font-size: 14.5px; }
+.rv-kinds .muted { font-size: 13.5px; min-width: 58px; text-align: right; }
+.rv-list { padding: 0 14px; gap: 0; }
+.rv-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 12px; padding: 11px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--fg); text-align: left; width: 100%; }
+.rv-row:last-child { border-bottom: 0; }
+.rv-row > small { font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.rv-row > span { display: grid; gap: 2px; min-width: 0; }
+.rv-row > span b { font-size: 15px; }
+.rv-row > span small { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rv-missed { font-size: 12px; font-weight: 600; }
+.rv-seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 9px; padding: 2px; }
+.rv-seg button { border: 0; background: none; color: var(--fg); padding: 7px; border-radius: 7px; font-size: 14px; font-weight: 500; }
+.rv-seg button[aria-pressed="true"] { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
+.rv-line { display: flex; justify-content: space-between; font-size: 14.5px; }
+.rv-ct { font-size: 13.5px; margin-top: 4px; }
+.rv-chart { width: 100%; height: auto; }
+.rv-chart text { font-size: 10px; fill: var(--muted); }
+.rv-chart .grid { stroke: var(--line); stroke-width: 1; }
+.rv-chart .plan { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.rv-chart .run { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+.rv-chart .plan-pt { fill: var(--muted); }
+.rv-chart .run-pt { fill: var(--fg); }
+.rv-pick { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); max-width: 100%; margin-bottom: 14px; }
+.rv-weeknav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.rv-weeknav .rv-pick { margin: 0; min-width: 0; }
+.dock-pill button.rv-tab svg { width: 22px; height: 22px; }
 </style>
 
 <div id="app"></div>
@@ -993,6 +1064,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     if (parts[0] === "p" && parts[1]) return { view: "program", pid: parts[1] };
     if (parts[0] === "d" && parts[1] && parts[2]) return { view: "day", pid: parts[1], did: parts[2], base: parts[2].split("~")[0] };
     if (parts[0] === "library") { S.homeTab = "programs"; return { view: "home" }; }
+    if (parts[0] === "progress") return { view: "progress", pid: parts[1] || "", week: +parts[2] || 0 };
     if (parts[0] === "you" || parts[0] === "team" || parts[0] === "welcome") return { view: parts[0] };
     if (parts[0] === "member" && parts[1]) return { view: "member", id: parts.slice(1).join(".") };
     return { view: "home" };
@@ -1612,6 +1684,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     let html;
     if (r.view === "program") html = viewProgram(r.pid);
     else if (r.view === "day") html = viewDay(r.pid, r.did);
+    else if (r.view === "progress") html = viewProgress(r.pid, r.week);
     else if (r.view === "you") html = viewYou();
     else if (r.view === "team") html = viewTeam();
     else if (r.view === "member") html = viewMember(r.id);
@@ -1680,6 +1753,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     return `<div class="side-in">
       <button class="side-brand" data-act="home"><span class="brand-mark">${I.mark}</span><span>AIM</span></button>
       <button class="sp-row nav ${active === "calendar" ? "on" : ""}" data-act="home-tab" data-v="calendar"><span class="badge ic">${I.calendar}</span><span class="sp-name">Calendar</span><span class="sp-pct tnum">${esc(fmt(todayNum(), { weekday: "short" }) + " " + fmt(todayNum(), { day: "numeric" }))}</span></button>
+      <button class="sp-row nav ${active === "progress" ? "on" : ""}" data-act="nav" data-v="progress"><span class="badge ic">${I_CHART}</span><span class="sp-name">Progress</span></button>
       ${S.canEdit ? `<button class="sp-row nav ${active === "team" ? "on" : ""}" data-act="nav" data-v="team"><span class="badge ic">${I.team}</span><span class="sp-name">Team</span>${S.members.size ? `<span class="sp-pct tnum">${S.members.size}</span>` : ""}</button>` : ""}
       <button class="sp-row nav" data-act="search-open"><span class="badge ic">${I.search}</span><span class="sp-name">Search</span></button>
       ${spacesList(active)}
@@ -1708,11 +1782,223 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     return `<nav class="dock main" aria-label="Main"><div class="dock-pill">
       <button data-act="home-tab" data-v="calendar" aria-current="${onHome && t === "calendar"}">${I.calendar}<span>Calendar</span></button>
       <button data-act="home-tab" data-v="programs" aria-current="${onHome && t === "programs"}">${I.grid}<span>Programs</span></button>
+      <button class="rv-tab" data-act="nav" data-v="progress" aria-current="${S.route.view === "progress"}">${I_CHART}<span>Progress</span></button>
       <button data-act="nav" data-v="you" aria-current="${["you", "team", "member", "welcome"].includes(S.route.view)}">${I.user}<span>You</span></button></div>
       <button class="dock-round" data-act="search-open" aria-label="Search">${I.search}</button></nav>`;
   }
   function dockAction(btn) {
     return `<nav class="dock" aria-label="Actions"><button class="dock-round" data-act="home" aria-label="Home">${I.home}</button><span class="spacer"></span>${btn || ""}</nav>`;
+  }
+
+  /* ----- progress: one plan week by week against what you did (web/progress.js, put in by web/build.py) -----
+     The same counting as the iPhone's Progress tab (AIM/Logic/Report.swift): from ticks and workouts, no AI, no guesses. */
+  const RV = { all: false, days: new Map() };
+  window.aimProgressRange = (all) => { RV.all = !!all; render(); };
+  const RV_LABEL = { long: "Long runs", steady: "Steady runs", easy: "Easy runs", intervals: "Interval runs", tempo: "Tempo runs", otherRun: "Other runs",
+    strength: "Strength", hyrox: "HYROX", race: "Races", other: "Other sessions" };
+  const RV_ORDER = Object.keys(RV_LABEL);
+  const RV_SPEED = ["intervals", "tempo", "steady"]; // the pace metric is about speed work
+  const RV_TOL = 10;     // a rep is on target up to 10 s/mi slower: the watch's pace-alert band for work steps
+  const RV_SHARE = 0.75; // a week counts toward consistency at 3 in 4 sessions done
+  const I_CHART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>';
+
+  function rvKind(x, info) { // a session's type from its name, like "Long Run: 10 Miles"; rest days have none
+    if ((x.did === info.rid && x.rep === 0 && x.n === info.race) || info.races.some((r) => r.n === x.n && RACE_RE.test(x.day.name))) return "race";
+    if (x.day.kind === "rest" || isRest(x.day.name)) return null;
+    const s = splitDay(x.day.name).rest.toLowerCase();
+    if (x.day.kind === "gym") return /hyrox|sled|wall ?balls?|roxzone|\bsim\b/.test(s) ? "hyrox" : "strength";
+    if (x.day.kind !== "run") return "other";
+    if (s.includes("long")) return "long";
+    if (s.includes("tempo") || s.includes("threshold")) return "tempo";
+    if (s.includes("steady") || s.includes("progression")) return "steady";
+    if (s.includes("easy") || s.includes("recovery") || s.includes("shakeout")) return "easy";
+    return /interval|fartlek|hills?\b|repeats?\b|\d\s*[x×]\s*\d|^the /.test(s) ? "intervals" : "otherRun";
+  }
+
+  function rvBuild(p) {
+    const info = todayInfo(p);
+    if (!info || !info.items.length) return null;
+    const first = info.items[0].n, last = info.items[info.items.length - 1].n, weeks = [];
+    for (let wk = first - dow(first), i = 1; wk <= last - dow(last); wk += 7, i++) {
+      const sessions = info.items.filter((x) => x.n >= wk && x.n < wk + 7).map((x) => {
+        const kind = rvKind(x, info);
+        return kind && { x, kind, done: isDone(p.id, x.k), act: matchOf(p.id, x.k) || null, mi: x.day.kind === "run" ? +x.day.dist || 0 : 0 };
+      }).filter(Boolean);
+      let rec = 0; // every run recorded that week, plus a ticked run's planned miles when no watch has it
+      for (let n = wk; n < wk + 7; n++) (SV.byDay.get(n) || []).forEach((a) => { if (actKind(a) === "run") rec += a.dist; });
+      const ticked = sessions.filter((s) => s.done && !s.act).reduce((a, s) => a + s.mi, 0);
+      weeks.push({ i, start: wk, end: wk + 6, sessions, doneMi: rec / 1609.344 + ticked, planMi: sessions.reduce((a, s) => a + s.mi, 0),
+        planned: sessions.length, done: sessions.filter((s) => s.done).length });
+    }
+    return { p, info, t: info.t, weeks };
+  }
+  const rvCurrent = (R) => R.weeks.find((w) => w.start <= R.t && R.t <= w.end) || null;
+  const rvFinished = (R) => R.weeks.filter((w) => w.end < R.t).length;
+  const rvMark = (R, w) => (w.start > R.t ? "upcoming" : w.end >= R.t ? "current" : w.done >= w.planned ? "full" : w.done ? "partial" : "missed");
+  const rvWindow = (R, i, last) => R.weeks.filter((w) => w.i <= i && (!last || w.i > i - last) && w.start <= R.t);
+  const rvDue = (R, s) => s.x.n < R.t || s.done; // only what's due counts: days before today, and anything already done
+  function rvTotals(R, ws) {
+    const o = { planned: 0, done: 0, planMi: 0, doneMi: 0 };
+    ws.forEach((w) => { w.sessions.forEach((s) => { if (rvDue(R, s)) { o.planned++; o.planMi += s.mi; if (s.done) o.done++; } }); o.doneMi += w.doneMi; });
+    o.completion = o.planned ? o.done / o.planned : null; o.volume = o.planMi ? o.doneMi / o.planMi : null;
+    return o;
+  }
+  function rvByKind(R, i) {
+    const m = new Map();
+    rvWindow(R, i).forEach((w) => w.sessions.forEach((s) => {
+      if (!rvDue(R, s)) return;
+      const c = m.get(s.kind) || { kind: s.kind, done: 0, planned: 0 }; c.planned++; if (s.done) c.done++; m.set(s.kind, c);
+    }));
+    return [...m.values()].sort((a, b) => RV_ORDER.indexOf(a.kind) - RV_ORDER.indexOf(b.kind));
+  }
+  function rvConsistency(R) { // of the last four finished weeks that had sessions, how many you did 3 in 4 of
+    const last = R.weeks.filter((w) => w.end < R.t && w.planned).slice(-4);
+    return { hit: last.filter((w) => w.done / w.planned >= RV_SHARE).length, of: last.length };
+  }
+  function rvDay(pid, did) { // a session's workout, for its steps; loads in the background and redraws
+    const base = did.split("~")[0], key = pid + "/" + base;
+    if (S.days.has(key)) return S.days.get(key);
+    const d = RV.days.get(key);
+    if (d) return d === "loading" ? null : d;
+    if (!S.db) return null;
+    RV.days.set(key, "loading");
+    S.db.doc(dayPath(pid, base)).get().then((s) => { RV.days.set(key, s.exists ? normDay(s.data()) : { blocks: [] }); render(); },
+      () => RV.days.set(key, { blocks: [] }));
+    return null;
+  }
+  function rvPace(R) { // work reps of interval, tempo and steady runs against watch laps, like the session page's targets vs actuals
+    const o = { on: 0, reps: 0, sessions: 0 };
+    R.weeks.forEach((w) => w.sessions.forEach((s) => {
+      if (!RV_SPEED.includes(s.kind) || !s.act) return;
+      ensurePerf(s.act.id);
+      const day = rvDay(R.p.id, s.x.did), pf = SV.perf.get(s.act.id);
+      if (!day || !pf || typeof pf !== "object" || pf.err) return;
+      const steps = planSteps(day), laps = Array.isArray(pf.laps) ? pf.laps.filter((l) => l.distance > 0) : [];
+      if (!steps.length) return;
+      const rows = steps.length === 1 && laps.length !== 1 ? (s.act.dist > 0 && s.act.moving > 0 ? [{ st: steps[0], l: { distance: s.act.dist, moving_time: s.act.moving } }] : null)
+        : laps.length >= steps.length && laps.length - steps.length <= 1 && lapsFollowSteps(steps, laps) ? steps.map((st, j) => ({ st, l: laps[j] })) : null;
+      if (!rows) return;
+      let any = false;
+      rows.forEach(({ st, l }) => {
+        if (st.rec || /^(warm|cool)|recover|easy|walk|jog|rest|float/i.test(st.label) || !(l.distance > 0) || !(l.moving_time > 0)) return; // work reps only
+        o.reps++; any = true;
+        if (l.moving_time / (l.distance / 1609.344) <= st.pace + RV_TOL) o.on++;
+      });
+      if (any) o.sessions++;
+    }));
+    return o;
+  }
+  function rvPlan(pid) { // the plan asked for, or the first one that isn't over yet
+    const all = datedPlans();
+    const x = all.find((y) => y.p.id === pid) || all.find((y) => (y.info.end || 0) >= todayNum()) || all[all.length - 1];
+    return x ? rvBuild(x.p) : null;
+  }
+
+  // pieces
+  const rvDist = (mi) => { const v = SV.imperial ? mi : mi * 1.609344; return (Math.abs(v - Math.round(v)) < 0.05 ? v.toFixed(0) : v.toFixed(1)) + (SV.imperial ? " mi" : " km"); };
+  const rvPct = (f) => (f == null ? "–" : Math.round(f * 100) + "%");
+  const rvRange = (w) => fmt(w.start, { month: "short", day: "numeric" }) + " – " + fmt(w.end, new Date(w.start * DAY).getUTCMonth() === new Date(w.end * DAY).getUTCMonth() ? { day: "numeric" } : { month: "short", day: "numeric" });
+  const rvBar = (f) => `<span class="rv-bar"><i style="width:${f > 0 ? Math.max(Math.min(f, 1) * 100, 2) : 0}%" class="${f >= 1 ? "full" : ""}"></i></span>`;
+  const rvRing = (f, icon) => { const c = 2 * Math.PI * 18, v = Math.max(0, Math.min(f || 0, 1));
+    return `<span class="rv-ring"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" class="bg"/><circle cx="22" cy="22" r="18" class="${v >= 1 ? "fg full" : "fg"}" stroke-dasharray="${(v * c).toFixed(1)} ${c.toFixed(1)}"/></svg>${icon}</span>`; };
+  const rvSec = (title, inner) => `<section class="rv-sec"><div class="eyebrow">${esc(title)}</div>${inner}</section>`;
+  const rvLink = (pid, i) => `progress.${pid}.${i}`;
+  function rvSummary(w) {
+    const card = (f, icon, val, label) => `<div class="card rv-stat">${rvRing(f, icon)}<b class="tnum">${esc(val)}</b><small>${esc(label)}</small></div>`;
+    return `<div class="rv-two">${card(w.planned ? w.done / w.planned : 0, I.check, w.done + " of " + w.planned, "sessions done")}
+      ${card(w.planMi ? w.doneMi / w.planMi : 0, I_CHART, rvDist(w.doneMi), w.planMi ? "of " + rvDist(w.planMi) + " planned" : "no runs planned")}</div>`;
+  }
+  function rvMetrics(R, to) {
+    const all = rvTotals(R, rvWindow(R, to)), c = rvConsistency(R), pc = rvPace(R);
+    const row = (title, val, f, note) => `<div class="rv-metric"><div class="rv-mh"><b>${esc(title)}</b><b class="tnum big">${esc(val)}</b></div>${rvBar(f || 0)}<p class="hint">${esc(note)}</p></div>`;
+    return `<div class="card rv-card">`
+      + row("Sessions", rvPct(all.completion), all.completion, all.planned ? `${all.done} of the ${all.planned} sessions due so far are done.` : "Counts from your first session.")
+      + row("Volume", rvPct(all.volume), all.volume, all.planMi ? `${rvDist(all.doneMi)} run of the ${rvDist(all.planMi)} planned so far.` : "Counts from your first planned run.")
+      + row("Consistency", c.of ? c.hit + " of " + c.of : "–", c.of ? c.hit / c.of : 0,
+        c.of ? `Weeks you did at least 3 in 4 sessions, of your last ${c.of === 1 ? "full week" : c.of + " full weeks"}.` : "Counts from your first full week.")
+      + row("Pace", pc.reps ? pc.on + " of " + pc.reps : "–", pc.reps ? pc.on / pc.reps : 0,
+        pc.reps ? `Work reps at target pace, or no more than ${SV.imperial ? "10 s/mi" : "6 s/km"} slower, in ${plural(pc.sessions, "interval, tempo or steady run", "interval, tempo or steady runs")} your watch laps lined up with.`
+          : "Shows up once your watch records laps on an interval, tempo or steady run.")
+      + `</div>`;
+  }
+  function rvMarkHtml(m) {
+    if (m === "full") return `<span class="rv-dot full">${I.check}</span>`;
+    if (m === "partial") return `<span class="rv-dot partial">${I.check}</span>`;
+    if (m === "current") return `<span class="rv-dot current"><i></i></span>`;
+    return `<span class="rv-dot ${m}"></span>`;
+  }
+  function rvWeeks(R, sel) {
+    const n = R.weeks.length, f = rvFinished(R);
+    return `<div class="card rv-card"><div class="rv-mh"><b class="big">${f} of ${plural(n, "week", "weeks")} done</b><span class="muted tnum">${rvPct(n ? f / n : null)}</span></div>
+      <div class="rv-grid">${R.weeks.map((w) => `<button class="rv-wk ${w.i === sel ? "on" : ""}" data-act="nav" data-v="${rvLink(R.p.id, w.i)}" aria-label="Week ${w.i}"><small>${w.i}</small>${rvMarkHtml(rvMark(R, w))}</button>`).join("")}</div>
+      <div class="rv-legend">${rvMarkHtml("full")}All done ${rvMarkHtml("partial")}Some ${rvMarkHtml("missed")}None</div></div>`;
+  }
+  function rvKinds(R, i) {
+    const ks = rvByKind(R, i);
+    return ks.length ? rvSec("Session types", `<div class="card rv-card rv-kinds">${ks.map((c) => `<span>${esc(RV_LABEL[c.kind])}</span>${rvBar(c.planned ? c.done / c.planned : 0)}<span class="muted tnum">${c.done} of ${c.planned}</span>`).join("")}</div>`) : "";
+  }
+  function rvSessions(R, list, schedule) {
+    return `<div class="card rv-card rv-list">${list.map((s) => {
+      const sub = s.act ? actLine(s.act) : s.mi ? rvDist(s.mi) + " planned" : RV_LABEL[s.kind];
+      const tail = schedule ? "" : s.done ? `<span class="rv-dot full">${I.check}</span>` : s.x.n < R.t ? `<span class="muted rv-missed">Missed</span>` : `<span class="rv-dot missed"></span>`;
+      return `<button class="rv-row" data-act="open-day" data-pid="${R.p.id}" data-did="${esc(s.x.k)}"><small>${esc(fmt(s.x.n, { weekday: "short" }))}</small><span><b>${esc(splitDay(s.x.day.name).rest)}</b><small>${esc(sub)}</small></span>${tail}</button>`;
+    }).join("")}</div>`;
+  }
+  function rvChart(ws) { // distance run (solid) against planned (dashed), per week
+    if (!ws.length) return "";
+    const k = SV.imperial ? 1 : 1.609344, W = 320, H = 150, L = 30, B = 22, T = 8, Rr = 12;
+    const max = Math.max(10, ...ws.map((w) => Math.max(w.planMi, w.doneMi) * k)), top = Math.ceil(max / 10) * 10;
+    const x = (j) => (ws.length === 1 ? (L + W - Rr) / 2 : L + 10 + (j * (W - Rr - L - 20)) / (ws.length - 1)), y = (v) => T + (H - T - B) * (1 - v / top);
+    const line = (key) => ws.map((w, j) => `${j ? "L" : "M"}${x(j).toFixed(1)},${y(w[key] * k).toFixed(1)}`).join("");
+    let g = "";
+    for (let v = 0; v <= top; v += top / 4) g += `<line x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}" class="grid"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`;
+    return `<svg class="rv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Distance run against planned, per week">${g}
+      <path d="${line("planMi")}" class="plan"/><path d="${line("doneMi")}" class="run"/>
+      ${ws.map((w, j) => `<circle cx="${x(j)}" cy="${y(w.planMi * k)}" r="2.2" class="plan-pt"/><circle cx="${x(j)}" cy="${y(w.doneMi * k)}" r="3.2" class="run-pt"/><text x="${x(j)}" y="${H - 6}" text-anchor="middle">${w.i}</text>`).join("")}</svg>
+      <div class="rv-legend"><i class="sw run"></i>Run, ${SV.imperial ? "miles" : "km"} <i class="sw plan"></i>Planned</div>`;
+  }
+
+  function viewProgress(pid, week) {
+    if (S.status !== "ready") return shell("progress", statusScreen());
+    const R = rvPlan(pid);
+    if (!R) return shell("progress", `<h1 class="page-title">Progress</h1><p class="hint">Your progress shows up here once a plan is on your Calendar. Open one in Programs and set its dates.</p>`);
+    if (week) return rvWeekPage(R, R.weeks.find((w) => w.i === week) || R.weeks[0]);
+    const cur = rvCurrent(R), to = cur ? cur.i : R.weeks[0].start > R.t ? 0 : R.weeks.length;
+    const plans = datedPlans();
+    let h = `<h1 class="page-title">Progress</h1>`;
+    if (plans.length > 1) h += `<select class="rv-pick" aria-label="Plan" onchange="location.hash='progress.'+this.value">${plans.map((x) => `<option value="${x.p.id}" ${x.p.id === R.p.id ? "selected" : ""}>${esc(x.p.name)}</option>`).join("")}</select>`;
+    const g = rvGoal(R), first = R.weeks[0];
+    h += `<div class="eyebrow">${esc(shortName(R.p))}</div><h2 class="rv-head">${cur ? `Week ${cur.i} of ${R.weeks.length}` : first.start > R.t ? "Starts " + esc(fmt(R.info.items[0].n)) : "Plan done"}</h2>`;
+    if (g) h += `<p class="muted rv-goal">${esc(g)}</p>`;
+    const w = cur || [...R.weeks].reverse().find((x) => x.end < R.t);
+    if (w) h += rvSec(cur ? "This week" : "Last week", rvSummary(w) + `<button class="card rv-open" data-act="nav" data-v="${rvLink(R.p.id, w.i)}"><b>Week ${w.i} report</b>${I.right}</button>`);
+    h += rvSec("Training", rvMetrics(R, to)) + rvSec("Plan", rvWeeks(R, 0)) + rvKinds(R, to);
+    return shell("progress", `<div class="rv">${h}</div>`);
+  }
+  function rvGoal(R) {
+    const r = R.info.races.find((x) => x.n >= R.t), n = r ? r.n : !isNaN(R.info.race) && R.info.race >= R.t ? R.info.race : R.info.end, name = r ? r.name : shortName(R.p);
+    if (n == null || isNaN(n)) return "";
+    const d = n - R.t;
+    return d > 0 ? plural(d, "day", "days") + " to " + name : d === 0 ? name + " is today" : name + " was " + fmt(n, { month: "short", day: "numeric" });
+  }
+  function rvWeekPage(R, w) {
+    const m = rvMark(R, w), sunday = dow(R.t) === 6 && new Date().getHours() >= 17;
+    const state = m === "upcoming" ? "Coming up" : m === "current" && !sunday ? "In progress" : "Weekly report"; // Coopah's report lands Sunday at 5 pm
+    let h = `<div class="rv-weeknav"><button class="btn sm" data-act="nav" data-v="progress.${R.p.id}">${I.left || "‹"} Progress</button>
+      <select class="rv-pick" aria-label="Week" onchange="location.hash='progress.${R.p.id}.'+this.value">${R.weeks.map((x) => `<option value="${x.i}" ${x.i === w.i ? "selected" : ""}>Week ${x.i} / ${R.weeks.length} · ${esc(rvRange(x))}</option>`).join("")}</select></div>`;
+    h += `<div class="eyebrow">${state}</div><h1 class="page-title">Week ${w.i}</h1><p class="muted rv-goal">${esc(rvRange(w))}</p>${rvSummary(w)}`;
+    if (w.sessions.length) h += rvSec("Sessions", rvSessions(R, w.sessions, false));
+    if (w.start <= R.t) {
+      const ws = rvWindow(R, w.i, RV.all ? 0 : 4), tot = rvTotals(R, ws);
+      h += rvSec("Progress", `<div class="card rv-card"><div class="rv-seg" role="group" aria-label="Range"><button aria-pressed="${!RV.all}" onclick="aimProgressRange(0)">Last 4 weeks</button><button aria-pressed="${RV.all}" onclick="aimProgressRange(1)">Whole plan</button></div>
+        <div class="rv-mh"><span><b class="big tnum">${rvPct(tot.completion)}</b><small class="muted">Session completion · ${tot.done} of ${tot.planned}</small></span>${rvRing(tot.completion, I_CHART)}</div>
+        <div class="rv-line"><span>Distance run</span><b class="tnum">${rvDist(tot.doneMi)}</b></div><div class="rv-line"><span>Distance planned</span><b class="tnum">${rvDist(tot.planMi)}</b></div>
+        <b class="rv-ct">Distance run vs planned</b>${rvChart(ws)}</div>`);
+    }
+    h += rvSec("Plan", rvWeeks(R, w.i)) + rvKinds(R, w.i);
+    const nx = R.weeks.find((x) => x.i === w.i + 1);
+    if (nx && nx.sessions.length) h += rvSec(`Week ${nx.i} schedule`, rvSessions(R, nx.sessions, true));
+    return shell("progress", `<div class="rv">${h}</div>`);
   }
 
   /* ----- home ----- */
