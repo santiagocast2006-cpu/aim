@@ -69,8 +69,16 @@
   const deepMerge = (a, b) => { for (const k in b) { if (isObj(b[k]) && isObj(a[k])) deepMerge(a[k], b[k]); else a[k] = b[k]; } return a; };
 
   // ---------- reads ----------
+  async function every(query) { // the server sends at most 1,000 rows per request: page until a short one
+    const out = [];
+    for (let i = 0; ; i += 1000) {
+      const rows = must(await query().order("program_id").order("key").range(i, i + 999));
+      out.push(...rows);
+      if (rows.length < 1000) return out;
+    }
+  }
   async function ticksOf(pid) {
-    const rows = must(await sb.from("ticks").select("key,done,noauto").eq("program_id", pid).limit(5000));
+    const rows = await every(() => sb.from("ticks").select("program_id,key,done,noauto").eq("user_id", me()).eq("program_id", pid));
     if (!rows.length) return null;
     const doc = { done: {}, noauto: {} };
     rows.forEach((r) => { doc.done[r.key] = Number(r.done); doc.noauto[r.key] = Number(r.noauto); });
@@ -95,10 +103,10 @@
     else if (r.t === "members") must(await sb.from("members").select("user_id,doc").limit(1000)).forEach((x) => out.set(x.user_id, x.doc));
     else if (r.t === "mine") {
       const [ticks, scheds, prof, docs] = await Promise.all([
-        sb.from("ticks").select("program_id,key,done,noauto").limit(20000), sb.from("schedules").select("program_id,doc"),
+        every(() => sb.from("ticks").select("program_id,key,done,noauto").eq("user_id", me())), sb.from("schedules").select("program_id,doc").eq("user_id", me()),
         sb.from("profiles").select("doc"), sb.from("user_docs").select("doc_id,doc")]);
       const progs = new Map();
-      must(ticks).forEach((t) => { const d = progs.get(t.program_id) || { done: {}, noauto: {} }; d.done[t.key] = Number(t.done); d.noauto[t.key] = Number(t.noauto); progs.set(t.program_id, d); });
+      ticks.forEach((t) => { const d = progs.get(t.program_id) || { done: {}, noauto: {} }; d.done[t.key] = Number(t.done); d.noauto[t.key] = Number(t.noauto); progs.set(t.program_id, d); });
       progs.forEach((d, pid) => out.set("prog_" + pid, d));
       must(scheds).forEach((s) => out.set("sched_" + s.program_id, s.doc));
       const p = must(prof)[0]; if (p) out.set("profile", p.doc);
@@ -136,8 +144,8 @@
     const q = {
       program: () => sb.from("programs").delete().eq("id", r.id).eq("col", r.col),
       day: () => sb.from("days").delete().eq("program_id", r.pid).eq("day_id", r.did),
-      ticks: () => sb.from("ticks").delete().eq("program_id", r.pid),
-      sched: () => sb.from("schedules").delete().eq("program_id", r.pid),
+      ticks: () => sb.from("ticks").delete().eq("user_id", me()).eq("program_id", r.pid),
+      sched: () => sb.from("schedules").delete().eq("user_id", me()).eq("program_id", r.pid),
       profile: () => sb.from("profiles").delete().eq("user_id", me()),
       userdoc: () => sb.from("user_docs").delete().eq("doc_id", r.id),
       member: () => sb.from("members").delete().eq("user_id", r.id),
@@ -150,18 +158,31 @@
 
   // ---------- live updates: one Realtime channel; any change refetches the listeners on that table ----------
   const listeners = new Map(); // table → Set(fn)
-  let channel = null;
+  let channel = null, joined = false;
+  const fresh = new Map(); // table → Set(fn): forget what was last delivered, so the next refetch is delivered in full
+  function refetch(tables, full) { // after our own write, a reconnect or the network coming back
+    for (const t of [].concat(tables)) {
+      if (full) (fresh.get(t) || new Set()).forEach((f) => f());
+      (listeners.get(t) || new Set()).forEach((f) => f());
+    }
+  }
+  const allTables = () => [...listeners.keys()];
   function listen(tables, fn) {
     for (const t of [].concat(tables)) { if (!listeners.has(t)) listeners.set(t, new Set()); listeners.get(t).add(fn); }
     if (!channel) {
       channel = sb.channel("aim");
       ["programs", "days", "ticks", "schedules", "profiles", "user_docs", "members", "assignments", "workouts"].forEach((table) =>
         channel.on("postgres_changes", { event: "*", schema: "public", table }, () => (listeners.get(table) || new Set()).forEach((f) => f())));
-      channel.subscribe();
+      channel.subscribe((status) => { // Realtime doesn't replay what was missed while it was disconnected
+        if (status !== "SUBSCRIBED") return;
+        if (joined) refetch(allTables(), true);
+        joined = true;
+      });
     }
     return () => { for (const t of [].concat(tables)) (listeners.get(t) || new Set()).delete(fn); };
   }
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") listeners.forEach((s) => s.forEach((f) => f())); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refetch(allTables(), false); });
+  window.addEventListener("online", () => refetch(allTables(), true)); // a failed refetch while offline isn't retried otherwise
   const debounce = (f, ms) => { let t = 0; return () => { clearTimeout(t); t = setTimeout(f, ms); }; };
 
   function docRef(path) {
@@ -170,20 +191,21 @@
     return {
       id,
       get: async () => { try { return snap(await readDoc(r)); } catch (e) { throw e.code ? e : wrap(e); } },
-      set: async (data) => { try { await writeDoc(r, data, false); } catch (e) { throw e.code ? e : wrap(e); } },
-      update: async (data) => { try { await writeDoc(r, data, true); } catch (e) { throw e.code ? e : wrap(e); } },
-      delete: async () => { try { await deleteDoc(r); } catch (e) { throw e.code ? e : wrap(e); } },
+      set: async (data) => { try { await writeDoc(r, data, false); refetch(TABLES[r.t], true); } catch (e) { throw e.code ? e : wrap(e); } },
+      update: async (data) => { try { await writeDoc(r, data, true); refetch(TABLES[r.t], true); } catch (e) { throw e.code ? e : wrap(e); } },
+      delete: async () => { try { await deleteDoc(r); refetch(TABLES[r.t], true); } catch (e) { throw e.code ? e : wrap(e); } },
       onSnapshot(next, onErr) {
         let last, live = true;
         const pull = debounce(async () => {
           try {
             const d = await readDoc(r), j = JSON.stringify(d);
             if (live && j !== last) { last = j; if (r.t === "ticks" && d) tickCache.set(r.pid, d); next(snap(d)); }
-          } catch (e) { if (live && onErr) onErr(e.code ? e : wrap(e)); }
+          } catch (e) { last = undefined; if (live && onErr) onErr(e.code ? e : wrap(e)); } // the next good read is delivered, even if unchanged
         }, 120);
         pull();
-        const off = listen(TABLES[r.t], pull);
-        return () => { live = false; off(); };
+        const off = listen(TABLES[r.t], pull), forget = () => { last = undefined; };
+        for (const t of [].concat(TABLES[r.t])) { if (!fresh.has(t)) fresh.set(t, new Set()); fresh.get(t).add(forget); }
+        return () => { live = false; off(); for (const t of [].concat(TABLES[r.t])) fresh.get(t).delete(forget); };
       },
     };
   }
@@ -204,11 +226,12 @@
             cur.forEach((d, id) => { if (id.startsWith("prog_")) tickCache.set(id.slice(5), d); });
             if (!live) return;
             next({ docChanges: () => changes, docs: [...cur].map(([id, d]) => ({ id, data: () => d })), metadata: { fromCache: false } });
-          } catch (e) { if (live && onErr) onErr(e.code ? e : wrap(e)); }
+          } catch (e) { prev = new Map(); if (live && onErr) onErr(e.code ? e : wrap(e)); } // the next good read arrives in full
         }, 120);
         pull();
-        const off = listen(TABLES[r.t], pull);
-        return () => { live = false; off(); };
+        const off = listen(TABLES[r.t], pull), forget = () => { prev = new Map(); };
+        for (const t of [].concat(TABLES[r.t])) { if (!fresh.has(t)) fresh.set(t, new Set()); fresh.get(t).add(forget); }
+        return () => { live = false; off(); for (const t of [].concat(TABLES[r.t])) fresh.get(t).delete(forget); };
       },
     };
   }
@@ -301,7 +324,7 @@
   // ---------- sign-in: the page waits behind this until someone is signed in ----------
   let signedIn;
   const ready = new Promise((res) => { signedIn = res; });
-  window.aimSignOut = async () => { await sb.auth.signOut(); location.reload(); };
+  window.aimSignOut = async () => { await sb.auth.signOut({ scope: "local" }); location.reload(); }; // this browser only: the phone stays signed in
 
   function gate() {
     const el = document.createElement("div");
@@ -336,8 +359,9 @@
 
   async function begin(s) {
     session = s;
-    const r = await sb.from("roles").select("role").maybeSingle();
-    coach = !!(r.data && r.data.role === "coach");
+    const r = await sb.from("roles").select("role").maybeSingle(), key = "aim.coach." + s.user.id;
+    if (r.error) coach = localStorage.getItem(key) === "1"; // a network blip at open doesn't demote a coach
+    else { coach = !!(r.data && r.data.role === "coach"); try { localStorage.setItem(key, coach ? "1" : "0"); } catch (e) {} }
     document.getElementById("aim-gate")?.remove();
     signedIn();
     const back = new URLSearchParams(location.search).get("strava"); // coming back from Strava's sign-in page
@@ -347,13 +371,18 @@
     }
     window.aimStrava.sync().catch(() => {}); // new Strava activities land in `workouts`; the live update redraws
   }
+  let begun = false;
+  const start = (s) => { if (!begun) { begun = true; begin(s); } };
+  // Always listening: signed out here, in another tab or on every device, or someone else signed in, the page
+  // starts over instead of carrying on as a person who isn't there. supabase-js asks for no awaits inside this callback.
+  sb.auth.onAuthStateChange((ev, s) => setTimeout(() => {
+    if (!begun) { if (s) start(s); return; }
+    if (!s || !session || s.user.id !== session.user.id) { location.reload(); return; }
+    session = s; // a refreshed token
+  }, 0));
   sb.auth.getSession().then(({ data }) => {
-    if (data.session) begin(data.session);
-    else {
-      const g = () => gate();
-      document.body ? g() : document.addEventListener("DOMContentLoaded", g);
-      sb.auth.onAuthStateChange((ev, s) => { if (s && !session) begin(s); });
-    }
+    if (data.session) start(data.session);
+    else { const g = () => { if (!begun) gate(); }; document.body ? g() : document.addEventListener("DOMContentLoaded", g); }
   });
 
   window.claude = {
@@ -1101,6 +1130,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     w.inflight = false;
     const pre = S.me ? PATH.user() + "/prog_" : "";
     if (ok && mode === "set" && pre && path.startsWith(pre)) S.progExists.add(path.slice(pre.length)); // our own create: from now on ticks are merges
+    if (W.get(path) !== w) { paintSaveState(); return; } // cancelled while in flight, and a newer write may have started: leave it be
     if (w.dirty) { clearTimeout(w.timer); w.timer = setTimeout(() => flushWrite(path), 60); }
     else { W.delete(path); if (ok) PATCH.delete(path); }
     paintSaveState();
@@ -1412,7 +1442,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
         if (col === "programs") S.status = "ready";
         if (changed || first) { syncDaySub(); render(); setTimeout(autoTick, 0); }
       }, (e) => {
-        if (col === "programs") { S.status = "error"; S.err = e && e.code; }
+        if (col === "programs" && !S.loaded.has("programs")) { S.status = "error"; S.err = e && e.code; } // after the first load, a failed refresh keeps what's on screen
         else S.loaded.add(col); // members can't read the private library; carry on without it
         render();
       });
@@ -1454,7 +1484,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
         if (S.memberDoc || S.admin) S.memberChecked = true;
         else if (!(snap && snap.metadata && snap.metadata.fromCache)) joinTeam(); // a cached "missing" may be wrong: wait for the server
         scheduleMemberSync();
-      }, () => { S.memberLoaded = false; S.memberChecked = true; });
+      }, () => { S.memberChecked = true; }); // a failed refresh keeps the copy already loaded
       watchAssign(S.me);
     }
     syncDaySub();
@@ -1478,7 +1508,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
       if (cur && JSON.stringify(cur) === JSON.stringify(next)) return;
       S.days.set(key, next);
       render();
-    }, (e) => { S.days.set(key, { blocks: [], error: (e && e.code) || "unavailable" }); render(); });
+    }, (e) => { const cur = S.days.get(key); if (!cur || cur.error) S.days.set(key, { blocks: [], error: (e && e.code) || "unavailable" }); render(); }); // a workout on screen stays on screen
   }
 
   const progDoc = (pid) => ({ done: { ...(S.progress.get(pid) || {}) }, noauto: { ...(S.noauto.get(pid) || {}) } });
@@ -1605,12 +1635,15 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     const group = s.items.filter((x) => x.w === it.w && x.rep === it.rep);
     const first = Math.min(...group.map((x) => dnum(x.date))), last = Math.max(...group.map((x) => dnum(x.date)));
     const span = Math.max(7, Math.ceil((last - first + 1) / 7) * 7);
-    const rep = Math.max(...s.items.filter((x) => x.w === it.w).map((x) => x.rep)) + 1;
-    const copies = group.map((x) => ({ k: x.did + "~" + rep, did: x.did, w: x.w, rep, date: x.date }));
+    const p0 = S.programs.get(pid), rid0 = p0 ? raceDayId(p0) : "", isRace = (x) => s.anchor === "race" && x.did === rid0 && x.rep === 0; // the race isn't repeated, and stays on race day
+    let rep = Math.max(...s.items.filter((x) => x.w === it.w).map((x) => x.rep)) + 1;
+    const used = (k) => k in (S.progress.get(pid) || {}) || k in (S.noauto.get(pid) || {});
+    while (group.some((x) => used(x.did + "~" + rep))) rep++; // a key an earlier repeat used still has its ticks: a new repeat never starts done
+    const copies = group.filter((x) => !isRace(x)).map((x) => ({ k: x.did + "~" + rep, did: x.did, w: x.w, rep, date: x.date }));
     const t = todayNum(), movable = s.items.filter((x) => dnum(x.date) <= last && dnum(x.date) >= t && !isDone(pid, x.k));
     const back = s.anchor === "race" && movable.length > 0 && first >= t && movable.every((x) => dnum(x.date) - span >= t); // once you're into the plan, pulling weeks back would land them in the past
     if (back) {
-      shiftDates(s, (x) => dnum(x.date) <= last, -span, pid);   // race stays put: this week and everything before it move a week earlier
+      shiftDates(s, (x) => dnum(x.date) <= last && !isRace(x), -span, pid);   // race stays put: this week and everything before it move a week earlier
     } else {
       const p = S.programs.get(pid), rid = p ? raceDayId(p) : "", race = s.anchor === "race" ? dnum(s.date) : NaN;
       shiftDates(s, (x) => dnum(x.date) > last && (isNaN(race) || (dnum(x.date) < race && !(x.did === rid && x.rep === 0))), span, pid); // everything after moves a week later, up to race day
@@ -1820,17 +1853,19 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
         const kind = rvKind(x, info);
         return kind && { x, kind, done: isDone(p.id, x.k), act: matchOf(p.id, x.k) || null, mi: x.day.kind === "run" ? +x.day.dist || 0 : 0 };
       }).filter(Boolean);
-      let rec = 0; // every run recorded that week, plus a ticked run's planned miles when no watch has it
-      for (let n = wk; n < wk + 7; n++) (SV.byDay.get(n) || []).forEach((a) => { if (actKind(a) === "run") rec += a.dist; });
+      const acts = []; // every run recorded that week, plus a ticked run's planned miles when no watch has it
+      for (let n = wk; n < wk + 7; n++) (SV.byDay.get(n) || []).forEach((a) => { if (actKind(a) === "run") acts.push(a); });
+      const matched = new Set(sessions.filter((s) => s.act).map((s) => s.act.id)), rec = acts.reduce((a, x) => a + x.dist, 0) / 1609.344;
+      const spare = acts.filter((x) => !matched.has(x.id)).reduce((a, x) => a + x.dist, 0) / 1609.344; // a ticked run may be one of these, done on another day
       const ticked = sessions.filter((s) => s.done && !s.act).reduce((a, s) => a + s.mi, 0);
-      weeks.push({ i, start: wk, end: wk + 6, sessions, doneMi: rec / 1609.344 + ticked, planMi: sessions.reduce((a, s) => a + s.mi, 0),
+      weeks.push({ i, start: wk, end: wk + 6, sessions, doneMi: rec + Math.max(0, ticked - spare), planMi: sessions.reduce((a, s) => a + s.mi, 0),
         planned: sessions.length, done: sessions.filter((s) => s.done).length });
     }
     return { p, info, t: info.t, weeks };
   }
   const rvCurrent = (R) => R.weeks.find((w) => w.start <= R.t && R.t <= w.end) || null;
   const rvFinished = (R) => R.weeks.filter((w) => w.end < R.t).length;
-  const rvMark = (R, w) => (w.start > R.t ? "upcoming" : w.end >= R.t ? "current" : w.done >= w.planned ? "full" : w.done ? "partial" : "missed");
+  const rvMark = (R, w) => (w.start > R.t ? "upcoming" : w.end >= R.t ? "current" : !w.planned ? "missed" : w.done >= w.planned ? "full" : w.done ? "partial" : "missed");
   const rvWindow = (R, i, last) => R.weeks.filter((w) => w.i <= i && (!last || w.i > i - last) && w.start <= R.t);
   const rvDue = (R, s) => s.x.n < R.t || s.done; // only what's due counts: days before today, and anything already done
   function rvTotals(R, ws) {
@@ -2574,7 +2609,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
       <small>${a.anchor === "race" ? "Race day " : "Starts "}${esc(fmt(dnum(a.date), { weekday: "long", month: "short", day: "numeric" }))}</small>
       <div class="row"><button class="btn primary sm" data-act="assign-accept">${s ? "Update my Calendar" : "Add to my Calendar"}</button><button class="btn ghost sm" data-act="assign-hide">Not now</button></div></div>`;
   }
-  const shouldWelcome = () => !S.admin && !!S.me && S.memberChecked && S.progressWritable && S.progressReady && !S.profile && !S.welcomed && lsGet("aim.welcomed") !== "1";
+  const shouldWelcome = () => !S.admin && !!S.me && S.memberChecked && S.progressWritable && S.progressReady && !S.profile && !S.welcomed && lsGet("aim.welcomed." + S.me) !== "1";
 
   function searchOverlay() {
     if (!S.search.open) return "";
@@ -3160,8 +3195,8 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
       S.canEdit = S.admin && !S.preview; if (S.preview) S.edit = false;
       SV.match = null; render(); toast(S.preview ? "Previewing as a member" : "Back to coach view");
     },
-    "welcome-done": () => { const d = S.draft || {}; S.draft = null; saveProfile({ ...d, onboarded: Date.now() }, true); S.welcomed = true; lsSet("aim.welcomed", "1"); S.jump = "today"; go("home"); },
-    "welcome-skip": () => { S.draft = null; S.welcomed = true; lsSet("aim.welcomed", "1"); S.jump = "today"; go("home"); },
+    "welcome-done": () => { const d = S.draft || {}; S.draft = null; saveProfile({ ...d, onboarded: Date.now() }, true); S.welcomed = true; lsSet("aim.welcomed." + S.me, "1"); S.jump = "today"; go("home"); },
+    "welcome-skip": () => { S.draft = null; S.welcomed = true; lsSet("aim.welcomed." + S.me, "1"); S.jump = "today"; go("home"); },
     "as-anchor": (el) => { S.asAnchor = el.dataset.v === "race" ? "race" : "start"; render(); },
     "assign-save": (el) => {
       const id = el.dataset.id, pid = (document.getElementById("as-pid") || {}).value, date = (document.getElementById("as-date") || {}).value;
