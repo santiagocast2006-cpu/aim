@@ -313,6 +313,8 @@
       location.href = data.url;
     },
     async sync() { const { data } = await sb.functions.invoke("strava", { body: { action: "sync" } }); return data || {}; },
+    // AIM's access is revoked at Strava and its tokens deleted; workouts already copied stay.
+    async disconnect() { const { data } = await sb.functions.invoke("strava", { body: { action: "disconnect" } }); if (!data || !data.ok) throw err("unavailable"); },
   };
 
   const downloads = { save: async ({ filename, data }) => {
@@ -325,6 +327,15 @@
   let signedIn;
   const ready = new Promise((res) => { signedIn = res; });
   window.aimSignOut = async () => { await sb.auth.signOut({ scope: "local" }); location.reload(); }; // this browser only: the phone stays signed in
+  // Deletes the account and everything of theirs on the server (delete_my_account), then forgets it in this browser.
+  window.aimDeleteAccount = async () => {
+    await window.aimStrava.disconnect().catch(() => {});
+    const { error } = await sb.rpc("delete_my_account");
+    if (error) throw error;
+    try { Object.keys(localStorage).filter((k) => k.startsWith("aim.")).forEach((k) => localStorage.removeItem(k)); } catch {}
+    await sb.auth.signOut({ scope: "local" });
+    location.reload();
+  };
 
   function gate() {
     const el = document.createElement("div");
@@ -2010,7 +2021,9 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     const r = R.info.races.find((x) => x.n >= R.t), n = r ? r.n : !isNaN(R.info.race) && R.info.race >= R.t ? R.info.race : R.info.end, name = r ? r.name : shortName(R.p);
     if (n == null || isNaN(n)) return "";
     const d = n - R.t;
-    return d > 0 ? plural(d, "day", "days") + " to " + name : d === 0 ? name + " is today" : name + " was " + fmt(n, { month: "short", day: "numeric" });
+    const when = fmt(n, { month: "short", day: "numeric" }), race = r || n === R.info.race;
+    if (!race) return d > 0 ? plural(d, "day", "days") + " left in the plan" : d === 0 ? "The plan's last day is today" : "The plan ended " + when;
+    return d > 0 ? plural(d, "day", "days") + " to " + name : d === 0 ? name + " is today" : name + " was " + when;
   }
   function rvWeekPage(R, w) {
     const m = rvMark(R, w), sunday = dow(R.t) === 6 && new Date().getHours() >= 17;
@@ -2491,7 +2504,10 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     const n = `${plural(SV.acts.length, "workout", "workouts")} from the last 10 weeks`;
     if (S.stravaLink === "setup") return `<p class="hint">Strava isn't set up on the AIM server yet. ${n} from Apple Health.</p>`;
     if (S.stravaLink === "off") return `<p class="hint">Not connected. ${n} from Apple Health (through the AIM iPhone app).</p><button class="btn sm" onclick="window.aimStrava.connect()">Connect Strava</button>`;
-    if (S.stravaLink === "on") return `<p class="hint">Connected · ${n}, with Apple Health</p>`;
+    if (S.stravaLink === "on") return `<p class="hint">Connected · ${n}, with Apple Health</p>`
+      + (S.confirm === "strava-off"
+        ? `<div class="confirm"><span>Disconnect Strava? AIM stops reading your activities and its access is removed at Strava. Workouts already in AIM stay.</span><span class="spacer"></span><button class="btn sm danger" onclick="window.aimStrava.disconnect().then(() => location.reload(), () => alert('Couldn\\'t reach the server, so Strava is still connected.'))">Disconnect</button><button class="btn sm ghost" data-act="ask" data-key="">Cancel</button></div>`
+        : `<button class="btn sm ghost danger" data-act="ask" data-key="strava-off">Disconnect Strava</button>`);
     return `<p class="hint">Checking Strava…</p>`;
   }
   function viewYou() {
@@ -2528,7 +2544,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
     h += `<section class="you-sec"><h2>Connections</h2><div class="conn"><b>Strava</b>${stravaLine()}</div>
       <div class="conn"><b>Apple Watch</b><p class="hint">Through the AIM iPhone app: connect Apple Health there, and watch workouts show up here too.</p></div></section>`;
     if (r !== "viewer") h += `<section class="you-sec"><h2>Privacy</h2>${shareLine(pr)}</section>`;
-    h += `<section class="you-sec"><h2>Your data</h2><button class="btn" data-act="export-data">${I.download}Download my data</button> <button class="btn" onclick="window.aimSignOut()">Sign out</button>
+    h += `<section class="you-sec"><h2>Your data</h2><button class="btn" data-act="export-data">${I.download}Download my data</button> <button class="btn" onclick="window.aimSignOut()">Sign out</button> <button class="btn ghost danger" data-act="ask" data-key="delete-acct">Delete my account</button>${S.confirm === "delete-acct" ? `<div class="confirm"><span>Delete your AIM account? Your profile, ticks, calendar dates and workouts are deleted for good, on every device. Strava is disconnected. This can't be undone.</span><span class="spacer"></span><button class="btn sm danger" onclick="window.aimDeleteAccount().catch(() => alert('Couldn\\'t reach AIM, so nothing was deleted.'))">Delete my account</button><button class="btn sm ghost" data-act="ask" data-key="">Cancel</button></div>` : ""}
       <p class="hint">A JSON file with your profile, ticks and calendar dates, for your records or a move to the AIM app. AIM ${AIM_VERSION}.</p></section>`;
     return shell("you", h);
   }
